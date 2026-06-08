@@ -70,6 +70,19 @@ class AdvancedBridgeHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": "index.html not found"}).encode('utf-8'))
             return
 
+        if parsed_url.path.startswith('/assets/'):
+            asset_path = parsed_url.path.lstrip('/')
+            try:
+                with open(asset_path, 'rb') as f:
+                    content = f.read()
+                content_type = 'image/png' if asset_path.endswith('.png') else 'application/octet-stream'
+                self._set_headers(200, content_type=content_type)
+                self.wfile.write(content)
+            except FileNotFoundError:
+                self._set_headers(404, content_type='application/json')
+                self.wfile.write(json.dumps({"error": "Asset not found"}).encode('utf-8'))
+            return
+
         if parsed_url.path == '/messages':
             query_params = parse_qs(parsed_url.query)
             type_filter = query_params.get('type_filter', [''])[0].strip()[:MAX_TYPE_LEN]
