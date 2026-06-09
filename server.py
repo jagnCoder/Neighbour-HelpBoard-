@@ -53,7 +53,7 @@ def handle_client(conn, addr, db, admin_token):
 
 def main():
     server_IP = os.getenv('SERVER_IP', '127.0.0.1')
-    server_port = int(os.getenv('SERVER_PORT', os.getenv('PORT', '7000')))
+    server_port = int(os.getenv('SERVER_PORT', '7000'))
     admin_token = os.getenv('ADMIN_TOKEN', '')
 
     if not admin_token:

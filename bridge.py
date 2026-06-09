@@ -6,10 +6,11 @@ import json
 from urllib.parse import urlparse, parse_qs
 
 # Configuration
-HTTP_PORT = int(os.getenv('HTTP_PORT', '8000'))
+# HTTP port: prefer explicit HTTP_PORT, otherwise use platform PORT (e.g. Render sets PORT)
+HTTP_PORT = int(os.getenv('HTTP_PORT', os.getenv('PORT', '8000')))
 HTTP_BIND = os.getenv('HTTP_BIND', '0.0.0.0')
 TCP_SERVER_IP = os.getenv('TCP_SERVER_IP', '127.0.0.1')
-TCP_SERVER_PORT = int(os.getenv('TCP_SERVER_PORT', os.getenv('TCP_PORT', '7000')))
+TCP_SERVER_PORT = int(os.getenv('SERVER_PORT', os.getenv('TCP_PORT', '7000')))
 ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv('ALLOWED_ORIGINS', 'http://localhost:8000').split(',') if origin.strip()]
 MAX_USERNAME_LEN = 30
 MAX_TYPE_LEN = 20
