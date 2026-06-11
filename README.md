@@ -182,3 +182,5 @@ Netlify can host only the static `index.html` file, but this app also needs `bri
 - Add pagination or filtering support on the UI.
 - Convert `client.py` into a shared client module for both TCP and HTTP access.
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/74b961fc-b66a-41be-93ba-fec11a2e9e44" />
+<img width="1536" height="1024" alt="architecture of neighbourhood-helpboard" src="https://github.com/user-attachments/assets/58373091-bd03-4eb1-a88d-148041f3b0c1" />
+42ed-a932-4b4fb6549477" />
