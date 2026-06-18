@@ -1,2 +1,1 @@
-# No external dependencies are required at the moment.
-# Add any future Python packages here, one per line.
+psycopg2-binary>=2.9.9,<3

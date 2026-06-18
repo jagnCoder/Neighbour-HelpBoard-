@@ -1,122 +1,128 @@
 # Neighborhood Helpboard
 
-A simple neighborhood messaging app built in Python. This project demonstrates a small TCP backend, a browser-facing HTTP gateway, and a lightweight SQLite persistence layer.
+A simple neighborhood messaging app built in Python. This project runs a plain TCP backend, a browser-facing HTTP gateway, and a Supabase PostgreSQL persistence layer.
 
 ## What this project includes
 
-- `server.py` — a plain TCP server that accepts text-based commands from clients.
-- `routes.py` — parses TCP commands such as `POST`, `LIST`, `LISTJSON`, `GET`, `EXIT`, and `SHUTDOWN`.
-- `bridge.py` — an HTTP gateway that translates browser requests into TCP server commands.
-- `database.py` — an SQLite-backed storage layer for posts.
-- `index.html` — a static web UI that runs in the browser and interacts with the bridge.
+* `server.py` — a plain TCP server that accepts text-based commands from clients.
+* `routes.py` — parses TCP commands such as `POST`, `LIST`, `LISTJSON`, `GET`, `EXIT`, and `SHUTDOWN`.
+* `bridge.py` — an HTTP gateway that translates browser requests into TCP server commands.
+* `database.py` — a Supabase PostgreSQL storage layer using `psycopg2` connection pooling.
+* `index.html` — a static web UI that runs in the browser and interacts with the bridge.
+* `dump.sql` — Supabase PostgreSQL schema migration for the `posts` table.
 
 ## Key behavior
 
-- The TCP server stores and retrieves posts using `database.py`.
-- `database.py` now uses `sqlite3` and creates `helpboard.db` automatically.
-- The bridge serves the web UI at `http://localhost:8000/` and keeps the `/messages` API for browser POST and GET requests.
-- The browser UI has been refreshed with improved styling for better usability.
-- The browser UI does not need direct access to the TCP port.
+* The TCP server stores and retrieves posts using `database.py`.
+* `database.py` connects to Supabase PostgreSQL through `DATABASE_URL` or `SUPABASE_DATABASE_URL`.
+* The bridge serves the web UI at `http://localhost:8000/` and keeps the `/messages` API for browser POST and GET requests.
+* The browser UI does not need direct access to the TCP port.
 
-## How the architecture works
+## Supabase setup
 
-1. `server.py` starts a TCP server on `127.0.0.1:7000`.
-2. `database.py` initializes an SQLite database file called `helpboard.db` and ensures a `posts` table exists.
-3. Clients send plain-text commands to the TCP server.
-4. `routes.py` executes the commands and maps them to `Database` methods.
-5. `bridge.py` listens on `http://localhost:8000` and converts HTTP requests into TCP commands.
-6. `index.html` is served by `bridge.py` on `GET /` and performs AJAX requests against `/messages`.
-7. `bridge.py` also exposes a health endpoint at `/health` so deployment platforms can confirm the app is running.
+1. Create a Supabase project.
+2. Open the Supabase SQL editor and run `dump.sql`.
+3. Copy the PostgreSQL connection URI from Supabase Project Settings > Database > Connection string.
+4. Set `DATABASE_URL` or `SUPABASE_DATABASE_URL` to that connection string.
+5. Use the pooled connection string on port `6543` for serverless deployments such as Render, Railway, or Fly.io.
 
 ## Database behavior
 
-The SQLite `posts` table contains:
+The Supabase PostgreSQL `posts` table contains:
 
-- `id` — unique integer primary key
-- `username` — sender name
-- `type` — category of the message (e.g. `info`, `alert`)
-- `message` — the content text
-- `timestamp` — UNIX timestamp stored as a float
+* `id` — unique integer primary key
+* `username` — sender name
+* `type` — category of the message, such as `info` or `alert`
+* `message` — the content text
+* `timestamp` — UNIX timestamp stored as a double-precision float
 
 `database.py` exposes the same public methods used by `server.py`:
 
-- `add_post(username, type_, message)` → returns a dict with the inserted post
-- `list_posts(type_filter=None, limit=10)` → returns a list of dicts
-- `get_post(id_)` → returns a dict or `None`
-
-This preserves compatibility with the existing server and routes logic.
+* `add_post(username, type_, message)` → returns a dict with the inserted post
+* `list_posts(type_filter=None, limit=10)` → returns a list of dicts ordered oldest to newest
+* `get_post(id_)` → returns a dict or `None`
 
 ## How to run it
 
 1. Open a terminal in the project folder.
-2. Start the TCP server:
+2. Install Python dependencies:
 
-   ```powershell
-   python .\server.py
-   ```
+```powershell
+python -m pip install -r .\requirements.txt
+```
 
-3. In a second terminal, start the HTTP bridge:
+3. Copy `.env.example` to `.env` and add your Supabase PostgreSQL connection string:
 
-   ```powershell
-   python .\bridge.py
-   ```
+```powershell
+copy .env.example .env
+```
 
-4. Open your browser and go to:
+4. Start the TCP server:
 
-   ```text
-   http://localhost:8000/
-   ```
+```powershell
+python .\server.py
+```
 
-5. Use the form to post a new message, then click `Refresh` to load the latest posts.
+5. In a second terminal, start the HTTP bridge:
 
-> Generated SQLite files such as `helpboard.db`, `helpboard.db-shm`, and `helpboard.db-wal` are runtime artifacts and should not be committed to source control.
+```powershell
+python .\bridge.py
+```
 
-### Using environment variables
+6. Open your browser and go to:
 
-You can override the default ports and backend host with environment variables:
+```text
+http://localhost:8000/
+```
 
-- `SERVER_IP` — TCP server bind address (default `0.0.0.0`)
-- `SERVER_PORT` or `PORT` — TCP server port (default `7000`)
-- `HTTP_PORT` — bridge HTTP port (default `8000`)
-- `TCP_SERVER_IP` — backend TCP server host for the bridge (default `127.0.0.1`)
-- `TCP_SERVER_PORT` or `TCP_PORT` — backend TCP server port for the bridge (default `7000`)
+7. Use the form to post a new message, then click `Refresh` to load the latest posts.
+
+## Environment variables
+
+You can override the defaults with environment variables:
+
+* `DATABASE_URL` or `SUPABASE_DATABASE_URL` — Supabase PostgreSQL connection URI
+* `SUPABASE_SCHEMA` — PostgreSQL schema for the `posts` table, default `public`
+* `SUPABASE_POSTS_TABLE` — table name, default `posts`
+* `DATABASE_SSL_MODE` — PostgreSQL SSL mode, default `require`
+* `DATABASE_POOL_MIN` — minimum PostgreSQL connection pool size, default `1`
+* `DATABASE_POOL_MAX` — maximum PostgreSQL connection pool size, default `10`
+* `SERVER_IP` — TCP server bind address, default `0.0.0.0`
+* `SERVER_PORT` or `PORT` — TCP server port, default `7000`
+* `HTTP_PORT` — bridge HTTP port, default `8000`
+* `HTTP_BIND` — bridge bind address, default `0.0.0.0`
+* `TCP_SERVER_IP` — backend TCP server host for the bridge, default `127.0.0.1`
+* `TCP_SERVER_PORT` or `TCP_PORT` — backend TCP server port for the bridge, default `7000`
+* `ADMIN_TOKEN` — optional token for the `SHUTDOWN` command
 
 Example:
 
 ```powershell
-$env:HTTP_PORT = '9000'
-python .\bridge.py
+$env:DATABASE_URL = 'postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres'
+python .\server.py
 ```
 
 ## Testing the setup
 
-### Test the SQLite backend directly
+### Test the Supabase backend directly
 
-Run this from the project root:
+Run this from the project root after setting `DATABASE_URL` or `SUPABASE_DATABASE_URL`:
 
 ```powershell
-python - <<'PY'
-from database import Database
-
-db = Database()
-post = db.add_post('tester', 'info', 'Test SQLite post')
-print(post)
-print(db.list_posts())
-print(db.get_post(post['id']))
-PY
+python -c "from database import Database; db=Database(); post=db.add_post('tester','info','Test Supabase post'); print(post); print(db.list_posts()); print(db.get_post(post['id'])); db.close()"
 ```
 
 ### Test the TCP server
 
-Start `server.py`, then use `client.py` or a socket script to connect to `127.0.0.1:7000`.
+Start `server.py`, then use a socket client to connect to `127.0.0.1:7000`.
 
 ### Test the browser UI
 
 With `bridge.py` running, open `http://localhost:8000/` and confirm:
 
-- the page loads
-- you can submit a post
-- the message list refreshes
+* the page loads
+* you can submit a post
+* the message list refreshes
 
 ## Docker support
 
@@ -128,16 +134,16 @@ Build the image from the project root:
 docker build -t neighborhood-helpboard .
 ```
 
-Run the container locally exposing the bridge port:
+Run the container locally exposing the bridge and TCP ports:
 
 ```powershell
-docker run --rm -p 8000:8000 neighborhood-helpboard
+docker run --rm -p 8000:8000 -p 7000:7000 -e DATABASE_URL='postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres' neighborhood-helpboard
 ```
 
 If you want to override ports inside the container:
 
 ```powershell
-docker run --rm -p 9000:9000 -e HTTP_PORT=9000 neighborhood-helpboard
+docker run --rm -p 9000:9000 -p 7001:7001 -e HTTP_PORT=9000 -e SERVER_PORT=7001 neighborhood-helpboard
 ```
 
 ## Deployment guidance
@@ -146,9 +152,9 @@ This project is not a static-only website. It requires a running Python backend 
 
 Recommended free hosts for this project:
 
-- Render.com
-- Railway.app
-- Fly.io
+* Render.com
+* Railway.app
+* Fly.io
 
 Render is the simplest choice for beginners because it can deploy your existing `Dockerfile` directly.
 
@@ -159,10 +165,13 @@ Render is the simplest choice for beginners because it can deploy your existing 
 3. Create a new `Web Service` and connect your GitHub repository.
 4. Choose `Docker` as the environment so Render uses your `Dockerfile`.
 5. Set environment variables if needed:
-   - `HTTP_PORT=8000`
-   - `TCP_SERVER_IP=127.0.0.1`
-   - `TCP_SERVER_PORT=7000`
-   - `SERVER_PORT=7000`
+
+   * `DATABASE_URL`
+   * `HTTP_PORT=8000`
+   * `TCP_SERVER_IP=127.0.0.1`
+   * `TCP_SERVER_PORT=7000`
+   * `SERVER_PORT=7000`
+
 6. Deploy and open the generated URL.
 
 ### Netlify note
@@ -171,16 +180,15 @@ Netlify can host only the static `index.html` file, but this app also needs `bri
 
 ## Notes and recommendations
 
-- `helpboard.db` is created automatically when the app starts.
-- `bridge.py` now serves `index.html` directly when a browser navigates to `/`.
-- `server.py` still uses the same TCP command protocol, so the bridge keeps compatibility with the original design.
+* `.env` is ignored by Git. Use environment variables in production.
+* Supabase PostgreSQL connections require SSL, so `DATABASE_SSL_MODE=require` is used by default.
+* The backend creates the `posts` table and indexes automatically on startup, but `dump.sql` should still be run once during project setup.
+* The TCP command protocol is unchanged, so the bridge keeps compatibility with the original design.
 
 ## Future improvements
 
-- Add authentication and request validation.
-- Add better error handling for TCP/HTTP failures.
-- Add pagination or filtering support on the UI.
-- Convert `client.py` into a shared client module for both TCP and HTTP access.
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/74b961fc-b66a-41be-93ba-fec11a2e9e44" />
-<img width="1536" height="1024" alt="architecture of neighbourhood-helpboard" src="https://github.com/user-attachments/assets/58373091-bd03-4eb1-a88d-148041f3b0c1" />
-42ed-a932-4b4fb6549477" />
+* Add authentication and request validation.
+* Add better error handling for TCP/HTTP failures.
+* Add pagination or filtering support on the UI.
+* Convert `client.py` into a shared client module for both TCP and HTTP access.
+* Add message deleting with an admin token.

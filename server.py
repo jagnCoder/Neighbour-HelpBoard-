@@ -52,8 +52,8 @@ def handle_client(conn, addr, db, admin_token):
         logger.info('Client %s disconnected', addr)
 
 def main():
-    server_IP = os.getenv('SERVER_IP', '127.0.0.1')
-    server_port = int(os.getenv('SERVER_PORT', '7000'))
+    server_IP = os.getenv('SERVER_IP', '0.0.0.0')
+    server_port = int(os.getenv('SERVER_PORT', os.getenv('PORT', '7000')))
     admin_token = os.getenv('ADMIN_TOKEN', '')
 
     if not admin_token:
@@ -78,10 +78,7 @@ def main():
         logger.info('Server shutdown requested via KeyboardInterrupt')
     finally:
         server.close()
-        try:
-            db.save()
-        except Exception:
-            pass
+        db.close()
         logger.info('Server cleanly stopped')
 
 if __name__ == "__main__":
