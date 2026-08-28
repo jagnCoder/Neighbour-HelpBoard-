@@ -87,12 +87,12 @@ You can override the defaults with environment variables:
 * `DATABASE_SSL_MODE` — PostgreSQL SSL mode, default `require`
 * `DATABASE_POOL_MIN` — minimum PostgreSQL connection pool size, default `1`
 * `DATABASE_POOL_MAX` — maximum PostgreSQL connection pool size, default `10`
-* `SERVER_IP` — TCP server bind address, default `0.0.0.0`
+* `TCP_SERVER_IP` — TCP server bind address, default `0.0.0.0`
 * `SERVER_PORT` or `PORT` — TCP server port, default `7000`
 * `HTTP_PORT` — bridge HTTP port, default `8000`
 * `HTTP_BIND` — bridge bind address, default `0.0.0.0`
 * `TCP_SERVER_IP` — backend TCP server host for the bridge, default `127.0.0.1`
-* `TCP_SERVER_PORT` or `TCP_PORT` — backend TCP server port for the bridge, default `7000`
+* `SERVER_PORT` or `TCP_PORT` — backend TCP server port for the bridge, default `7000`
 * `ADMIN_TOKEN` — optional token for the `SHUTDOWN` command
 
 Example:
@@ -134,17 +134,73 @@ Build the image from the project root:
 docker build -t neighborhood-helpboard .
 ```
 
-Run the container locally exposing the bridge and TCP ports:
+Run the container locally with the database URL written directly in PowerShell:
 
 ```powershell
 docker run --rm -p 8000:8000 -p 7000:7000 -e DATABASE_URL='postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres' neighborhood-helpboard
 ```
 
-If you want to override ports inside the container:
+```powershell
+$env:DATABASE_URL = 'postgresql://postgres:URL_ENCODED_PASSWORD@db.YOUR_PROJECT_REF.supabase.co:5432/postgres'
+docker run --rm `
+  --name neighborhood-helpboard `
+  -p 8000:8000 `
+  -p 7000:7000 `
+  -e DATABASE_URL="$env:DATABASE_URL" `
+  neighborhood-helpboard
+```
+
+To load the database URL from an environment file, put this in `.env`:
+
+```text
+DATABASE_URL=postgresql://postgres:URL_ENCODED_PASSWORD@db.YOUR_PROJECT_REF.supabase.co:5432/postgres
+```
+
+Then run:
+
+```powershell
+docker run --rm `
+  --name neighborhood-helpboard `
+  --env-file .env `
+  -p 8000:8000 `
+  -p 7000:7000 `
+  neighborhood-helpboard
+```
+
+If you want to override ports and write the database URL directly in PowerShell:
 
 ```powershell
 docker run --rm -p 9000:9000 -p 7001:7001 -e HTTP_PORT=9000 -e SERVER_PORT=7001 neighborhood-helpboard
 ```
+
+```powershell
+$env:DATABASE_URL = 'postgresql://postgres:URL_ENCODED_PASSWORD@db.YOUR_PROJECT_REF.supabase.co:5432/postgres'
+docker run --rm `
+  --name neighborhood-helpboard `
+  -p 9000:9000 `
+  -p 7001:7001 `
+  -e HTTP_PORT=9000 `
+  -e SERVER_PORT=7001 `
+  -e DATABASE_URL="$env:DATABASE_URL" `
+  neighborhood-helpboard
+```
+
+Or load the same database URL from `.env`:
+
+```powershell
+docker run --rm `
+  --name neighborhood-helpboard `
+  --env-file .env `
+  -p 9000:9000 `
+  -p 7001:7001 `
+  -e HTTP_PORT=9000 `
+  -e SERVER_PORT=7001 `
+  neighborhood-helpboard
+```
+
+Replace `URL_ENCODED_PASSWORD` and `YOUR_PROJECT_REF` with your Supabase values. Encode special password characters before placing the password in the URL.
+
+> **Note:** Ensure `.env` is in `.gitignore` to prevent committing secrets. If ports are already in use, run `docker ps` to identify conflicting containers or map to different host ports (e.g., `-p 8001:8000`).
 
 ## Deployment guidance
 
@@ -169,7 +225,7 @@ Render is the simplest choice for beginners because it can deploy your existing 
    * `DATABASE_URL`
    * `HTTP_PORT=8000`
    * `TCP_SERVER_IP=127.0.0.1`
-   * `TCP_SERVER_PORT=7000`
+   * `SERVER_PORT=7000`
    * `SERVER_PORT=7000`
 
 6. Deploy and open the generated URL.

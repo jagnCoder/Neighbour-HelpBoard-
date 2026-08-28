@@ -7,10 +7,11 @@ from urllib.parse import urlparse, parse_qs
 
 # Configuration
 # HTTP port: prefer explicit HTTP_PORT, otherwise use platform PORT (e.g. Render sets PORT)
+# #PORT is set by render automatically
 HTTP_PORT = int(os.getenv('HTTP_PORT', os.getenv('PORT', '8000')))
 HTTP_BIND = os.getenv('HTTP_BIND', '0.0.0.0')
 TCP_SERVER_IP = os.getenv('TCP_SERVER_IP', '127.0.0.1')
-TCP_SERVER_PORT = int(os.getenv('SERVER_PORT', os.getenv('TCP_PORT', '7000')))
+SERVER_PORT = int(os.getenv('SERVER_PORT', '7000'))
 ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv('ALLOWED_ORIGINS', 'http://localhost:8000').split(',') if origin.strip()]
 MAX_USERNAME_LEN = 30
 MAX_TYPE_LEN = 20
@@ -167,8 +168,8 @@ class AdvancedBridgeHandler(BaseHTTPRequestHandler):
     # TCP Core Translation Engine
     def talk_to_tcp_server(self, payload, handshake_username='bridge_http'):
         try:
-            with socket.create_connection((TCP_SERVER_IP, TCP_SERVER_PORT), timeout=2.0) as tcp_socket:
-                tcp_socket.settimeout(2.0)
+            with socket.create_connection((TCP_SERVER_IP, SERVER_PORT), timeout=10.0) as tcp_socket:
+                tcp_socket.settimeout(10.0)
                 try:
                     tcp_socket.recv(4096).decode('utf-8', errors='replace')
                 except socket.timeout:

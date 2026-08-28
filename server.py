@@ -52,8 +52,9 @@ def handle_client(conn, addr, db, admin_token):
         logger.info('Client %s disconnected', addr)
 
 def main():
-    server_IP = os.getenv('SERVER_IP', '0.0.0.0')
-    server_port = int(os.getenv('SERVER_PORT', os.getenv('PORT', '7000')))
+    #PORT is set by render automatically
+    TCP_SERVER_IP = os.getenv('TCP_SERVER_IP', '127.0.0.1')
+    server_port = int(os.getenv('SERVER_PORT', os.getenv('PORT', '7000')))#python prefers lowercase local variable names so I changed SERVER_PORT to server_port
     admin_token = os.getenv('ADMIN_TOKEN', '')
 
     if not admin_token:
@@ -63,10 +64,10 @@ def main():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-    server.bind((server_IP, server_port))
+    server.bind((TCP_SERVER_IP, server_port))
     server.listen(5)
     server.settimeout(1.0)
-    logger.info('Server listening on %s:%s', server_IP, server_port)
+    logger.info('Server listening on %s:%s', TCP_SERVER_IP, server_port)
     try:
         while not SHUTDOWN_EVENT.is_set():
             try:
