@@ -91,6 +91,8 @@ You can override the defaults with environment variables:
 * `SERVER_PORT` or `PORT` — TCP server port, default `7000`
 * `HTTP_PORT` — bridge HTTP port, default `8000`
 * `HTTP_BIND` — bridge bind address, default `0.0.0.0`
+* `SHOWN_HOST` — host name shown in the bridge log, default `localhost`
+* `SHOWN_PORT` — port shown in the bridge log, default `HTTP_PORT`
 * `TCP_SERVER_IP` — backend TCP server host for the bridge, default `127.0.0.1`
 * `SERVER_PORT` or `TCP_PORT` — backend TCP server port for the bridge, default `7000`
 * `ADMIN_TOKEN` — optional token for the `SHUTDOWN` command
@@ -128,24 +130,40 @@ With `bridge.py` running, open `http://localhost:8000/` and confirm:
 
 A container image can bundle both services in one deployable unit.
 
+The bridge listens on `HTTP_PORT` and connects to the TCP server at
+`TCP_SERVER_IP:SERVER_PORT`. The TCP port is internal to the container and
+does not need a Docker `-p` mapping. `SHOWN_HOST` and `SHOWN_PORT` only control
+the URL printed in the bridge log; they do not change socket binding.
+
 Build the image from the project root:
 
 ```powershell
 docker build -t neighborhood-helpboard .
 ```
 
-Run the container locally with the database URL written directly in PowerShell:
+Run the container with the confirmed local configuration:
 
 ```powershell
-docker run --rm -p 8000:8000 -p 7000:7000 -e DATABASE_URL='postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres' neighborhood-helpboard
+docker run --rm `
+  -p 9000:9000 `
+  -e HTTP_PORT=9000 `
+  -e SERVER_PORT=7001 `
+  -e SHOWN_HOST=localhost `
+  -e SHOWN_PORT=9000 `
+  -e DATABASE_URL="$env:DATABASE_URL" `
+  neighborhood-helpboard
 ```
+or
 
 ```powershell
 $env:DATABASE_URL = 'postgresql://postgres:URL_ENCODED_PASSWORD@db.YOUR_PROJECT_REF.supabase.co:5432/postgres'
 docker run --rm `
   --name neighborhood-helpboard `
-  -p 8000:8000 `
-  -p 7000:7000 `
+  -p 9000:9000 `
+  -e HTTP_PORT=9000 `
+  -e SERVER_PORT=7001 `
+  -e SHOWN_HOST=localhost `
+  -e SHOWN_PORT=9000 `
   -e DATABASE_URL="$env:DATABASE_URL" `
   neighborhood-helpboard
 ```
@@ -162,27 +180,30 @@ Then run:
 docker run --rm `
   --name neighborhood-helpboard `
   --env-file .env `
-  -p 8000:8000 `
-  -p 7000:7000 `
+  -p 9000:9000 `
+  -e HTTP_PORT=9000 `
+  -e SERVER_PORT=7001 `
+  -e SHOWN_HOST=localhost `
+  -e SHOWN_PORT=9000 `
   neighborhood-helpboard
 ```
 
-If you want to override ports and write the database URL directly in PowerShell:
+If you want to use the confirmed `9000` HTTP / `7001` internal TCP configuration:
 
 ```powershell
-docker run --rm -p 9000:9000 -p 7001:7001 -e HTTP_PORT=9000 -e SERVER_PORT=7001 neighborhood-helpboard
+docker run --rm `
+  -p 9000:9000 `
+  -e HTTP_PORT=9000 `
+  -e SERVER_PORT=7001 `
+  -e SHOWN_HOST=localhost `
+  -e SHOWN_PORT=9000 `
+  neighborhood-helpboard
 ```
+or
 
 ```powershell
 $env:DATABASE_URL = 'postgresql://postgres:URL_ENCODED_PASSWORD@db.YOUR_PROJECT_REF.supabase.co:5432/postgres'
-docker run --rm `
-  --name neighborhood-helpboard `
-  -p 9000:9000 `
-  -p 7001:7001 `
-  -e HTTP_PORT=9000 `
-  -e SERVER_PORT=7001 `
-  -e DATABASE_URL="$env:DATABASE_URL" `
-  neighborhood-helpboard
+
 ```
 
 Or load the same database URL from `.env`:
@@ -192,15 +213,16 @@ docker run --rm `
   --name neighborhood-helpboard `
   --env-file .env `
   -p 9000:9000 `
-  -p 7001:7001 `
   -e HTTP_PORT=9000 `
   -e SERVER_PORT=7001 `
+  -e SHOWN_HOST=localhost `
+  -e SHOWN_PORT=9000 `
   neighborhood-helpboard
 ```
 
 Replace `URL_ENCODED_PASSWORD` and `YOUR_PROJECT_REF` with your Supabase values. Encode special password characters before placing the password in the URL.
 
-> **Note:** Ensure `.env` is in `.gitignore` to prevent committing secrets. If ports are already in use, run `docker ps` to identify conflicting containers or map to different host ports (e.g., `-p 8001:8000`).
+> **Note:** Ensure `.env` is in `.gitignore` to prevent committing secrets. If port `9000` is already in use, choose another HTTP port consistently, such as `HTTP_PORT=9001` with `-p 9001:9001`.
 
 ## Deployment guidance
 
